@@ -1,0 +1,7 @@
+_mexFunction
+_mexfilerequiredapiversion
+_emlrtMexFcnProperties
+_lineSegmentIntersect
+_lineSegmentIntersect_initialize
+_lineSegmentIntersect_terminate
+_lineSegmentIntersect_atexit

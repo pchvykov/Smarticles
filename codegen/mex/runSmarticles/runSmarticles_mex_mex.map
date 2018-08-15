@@ -1,0 +1,17 @@
+_mexFunction
+_mexfilerequiredapiversion
+_emlrtMexFcnProperties
+_runSmarticles
+_d_error
+_emlrt_checkEscapedGlobals
+_emlrt_marshallIn
+_emlrt_marshallOut
+_emlrt_synchGlobalsFromML
+_emlrt_synchGlobalsToML
+_emxEnsureCapacity
+_emxFree_real_T
+_emxInit_real_T
+_emxInit_real_T1
+_runSmarticles_initialize
+_runSmarticles_terminate
+_runSmarticles_atexit

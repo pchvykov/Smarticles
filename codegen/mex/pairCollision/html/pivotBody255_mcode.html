@@ -1,0 +1,164 @@
+<html>
+<body>
+<script src="resources/eml_report_loadable_data.js"></script>
+<div class="dead">
+<pre class="code">
+<span class="srcline"><span class="lineno"><a href="1,1" id="srcline1">  1</a></span><span class="line"><span class="comment">%resolve a pair-collision, returning new sm position values</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,2" id="srcline2">  2</a></span><span class="line"><span class="comment">%in: the two smcle 5-tuples, flag whether to resolve or just check collisions</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,3" id="srcline3">  3</a></span><span class="line"><span class="comment">%out: T/F if just checking, list of new 3-tuples (cx,cy,theta) if resolving</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,4" id="srcline4">  4</a></span><span class="line">function [xSm]=pairCollision(sm, resolveFl, fricCoeff, nextAl) <span class="comment">%#codegen</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,5" id="srcline5">  5</a></span><span class="line">    global A B tRes;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,6" id="srcline6">  6</a></span><span class="line">    <span class="comment">% check for collisions:----------</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,7" id="srcline7">  7</a></span><span class="line">    crd=smcle2coord(sm);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,8" id="srcline8">  8</a></span><span class="line">    inters = lineSegmentIntersect([crd(1,1:4); crd(1,3:6); crd(1,5:8)],[crd(2,1:4); crd(2,3:6); crd(2,5:8)]);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,9" id="srcline9">  9</a></span><span class="line">    if all(~inters.intAdjacencyMatrix); xSm=zeros(2,3); return; end <span class="comment">%if no collision, return false</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,10" id="srcline10"> 10</a></span><span class="line">    if(~resolveFl); xSm=ones(2,3); return; end <span class="comment">%if just checking for collisions</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,11" id="srcline11"> 11</a></span><span class="line"><span class="comment">%     cla; plot(crd(:,1:2:end)',crd(:,2:2:end)','-o','LineWidth',2); axis([-0.5,0.5,-0.5,0.5]*12);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,12" id="srcline12"> 12</a></span><span class="line"><span class="comment">%     scatter(inters.intMatrixX(:),inters.intMatrixY(:),1000,'r.'); %mark collision points</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,13" id="srcline13"> 13</a></span><span class="line">    <span class="comment">% find out who is pushing who:-------</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,14" id="srcline14"> 14</a></span><span class="line">    lenMx=repmat([A;B;A],1,3); lenMx2=lenMx'; <span class="comment">%scales to get real-space distances</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,15" id="srcline15"> 15</a></span><span class="line">    inX=find(inters.intAdjacencyMatrix); inX=inX(1); <span class="comment">%get intersection index</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,16" id="srcline16"> 16</a></span><span class="line">    dBeg12=inters.intNormalizedDistance1To2(inX); dEnd12=(1-dBeg12).*lenMx(inX); dBeg12=dBeg12.*lenMx(inX);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,17" id="srcline17"> 17</a></span><span class="line">    dBeg21=inters.intNormalizedDistance2To1(inX); dEnd21=(1-dBeg21).*lenMx2(inX); dBeg21=dBeg21.*lenMx2(inX);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,18" id="srcline18"> 18</a></span><span class="line">    intDistVc=[dBeg12, dEnd12, dBeg21, dEnd21];</span></span>
+<span class="srcline"><span class="lineno"><a href="1,19" id="srcline19"> 19</a></span><span class="line">    <span class="comment">%decide by min sticking-out length:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,20" id="srcline20"> 20</a></span><span class="line">    [minDist,mIx]=min(intDistVc); <span class="comment">%find shortest distance to intersec</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,21" id="srcline21"> 21</a></span><span class="line"><span class="comment">%     if(minDist&gt;B/3) %error - need higher resolution (ambiguous pusing/pushed)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,22" id="srcline22"> 22</a></span><span class="line"><span class="comment">%         "warning: collision orientation ambiguous"</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,23" id="srcline23"> 23</a></span><span class="line"><span class="comment">%     end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,24" id="srcline24"> 24</a></span><span class="line">    if(mIx&lt;=2); src=1; trg=2; sLk=mod(inX-1,3)+1; tLk=ceil(inX/3); <span class="comment">%src - pushing, trg - pushed</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,25" id="srcline25"> 25</a></span><span class="line">    else; src=2; trg=1; tLk=mod(inX-1,3)+1; sLk=ceil(inX/3);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,26" id="srcline26"> 26</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,27" id="srcline27"> 27</a></span><span class="line">    beg=logical(mod(mIx,2)); <span class="comment">%src is at beginning of the sLk link? </span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,28" id="srcline28"> 28</a></span><span class="line">    if(sLk==2 || (sLk==3 &amp;&amp; beg) || (sLk==1 &amp;&amp; ~beg)) <span class="comment">%ensure that corner - check other intersection</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,29" id="srcline29"> 29</a></span><span class="line">        if(~(src==1 &amp;&amp; sum(inters.intAdjacencyMatrix(:,tLk))==2) ...</span></span>
+<span class="srcline"><span class="lineno"><a href="1,30" id="srcline30"> 30</a></span><span class="line">                &amp;&amp; ~(src==2 &amp;&amp; sum(inters.intAdjacencyMatrix(tLk,:))==2))</span></span>
+<span class="srcline"><span class="lineno"><a href="1,31" id="srcline31"> 31</a></span><span class="line">            mIx=(mIx&lt;=2)*2; [~,tmp]=min(intDistVc(mIx+(1:2)));</span></span>
+<span class="srcline"><span class="lineno"><a href="1,32" id="srcline32"> 32</a></span><span class="line">            mIx=mIx+tmp; beg=logical(mod(mIx,2));</span></span>
+<span class="srcline"><span class="lineno"><a href="1,33" id="srcline33"> 33</a></span><span class="line">            tmp=src; src=trg; trg=tmp;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,34" id="srcline34"> 34</a></span><span class="line">            tmp=sLk; sLk=tLk; tLk=tmp;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,35" id="srcline35"> 35</a></span><span class="line">        end <span class="comment">%else make the other link source</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,36" id="srcline36"> 36</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,37" id="srcline37"> 37</a></span><span class="line">    <span class="comment">% Do move calculation:----------</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,38" id="srcline38"> 38</a></span><span class="line">    trEps=0.5*tRes*B; maxAngle=0.2;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,39" id="srcline39"> 39</a></span><span class="line">    <span class="comment">%get force angle from what we are pushing on (normal to the surface):</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,40" id="srcline40"> 40</a></span><span class="line">    <span class="comment">%and calculate the response on the pushed smarticle:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,41" id="srcline41"> 41</a></span><span class="line">    piv=zeros(2,3); fAng=0;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,42" id="srcline42"> 42</a></span><span class="line">    if(tLk==3); fAng=sm(trg,3)+sm(trg,5); <span class="comment">%right arm pushed</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,43" id="srcline43"> 43</a></span><span class="line">        piv(trg,:)=pivotArm(sm(trg,5), sm(trg,5)+pi/2, intDistVc(2*trg-1)/B);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,44" id="srcline44"> 44</a></span><span class="line">    elseif(tLk==2); fAng=sm(trg,3); <span class="comment">%body pushed</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,45" id="srcline45"> 45</a></span><span class="line">        piv(trg,:)=pivotBody(intDistVc(2*trg-1)/B - 0.5);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,46" id="srcline46"> 46</a></span><span class="line">    elseif(tLk==1); fAng=sm(trg,3)-sm(trg,4); <span class="comment">%left arm pushed</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,47" id="srcline47"> 47</a></span><span class="line">        piv(trg,:)=pivotArm(sm(trg,4), sm(trg,4)+pi/2, intDistVc(2*trg)/B); piv(trg,[1,3])=-piv(trg,[1,3]); <span class="comment">%flip x-axis</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,48" id="srcline48"> 48</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,49" id="srcline49"> 49</a></span><span class="line">    <span class="comment">%get force orientation:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,50" id="srcline50"> 50</a></span><span class="line">    vStickOut=crd(src,(sLk-beg)*2+(1:2))-[inters.intMatrixX(inX),inters.intMatrixY(inX)]; <span class="comment">%sLk-beg=[0,4] vertex index - gives the piece sticking through inters</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,51" id="srcline51"> 51</a></span><span class="line">    [vStickOut(1),vStickOut(2)]=cart2pol(vStickOut(1),vStickOut(2)); <span class="comment">%polar coordinates</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,52" id="srcline52"> 52</a></span><span class="line">    so2fAng=abs(mod(vStickOut(1)-fAng+pi,2*pi)-pi);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,53" id="srcline53"> 53</a></span><span class="line">    fDir=sign(pi/2-so2fAng); <span class="comment">%get the direction of the force on trg</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,54" id="srcline54"> 54</a></span><span class="line">    xSm=sm(:,1:3); <span class="comment">%setup the identity map</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,55" id="srcline55"> 55</a></span><span class="line">    </span></span>
+<span class="srcline"><span class="lineno"><a href="1,56" id="srcline56"> 56</a></span><span class="line">    <span class="comment">%calculate the response on the pushing smarticle:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,57" id="srcline57"> 57</a></span><span class="line">    if(~beg &amp;&amp; sLk==3) <span class="comment">%if pushing with the right arm tip</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,58" id="srcline58"> 58</a></span><span class="line">        piv(src,:)=pivotArm(sm(src,5), fAng-sm(src,3)+pi/2, A/B);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,59" id="srcline59"> 59</a></span><span class="line">    elseif((beg &amp;&amp; sLk==3) || (~beg &amp;&amp; sLk==2)) <span class="comment">%if pushing with right corner</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,60" id="srcline60"> 60</a></span><span class="line">        piv(src,:)=pivotArm(0, fAng-sm(src,3)+pi/2, 0);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,61" id="srcline61"> 61</a></span><span class="line">    elseif((beg &amp;&amp; sLk==2) || (~beg &amp;&amp; sLk==1)) <span class="comment">%pusing with left corner</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,62" id="srcline62"> 62</a></span><span class="line">        piv(src,:)=pivotArm(0, -fAng+sm(src,3)+pi/2, 0); piv(src,[1,3])=-piv(src,[1,3]);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,63" id="srcline63"> 63</a></span><span class="line">    elseif(beg &amp;&amp; sLk==1) <span class="comment">%pushing with left arm tip</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,64" id="srcline64"> 64</a></span><span class="line">        piv(src,:)=pivotArm(sm(src,4), -fAng+sm(src,3)+pi/2, A/B); piv(src,[1,3])=-piv(src,[1,3]);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,65" id="srcline65"> 65</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,66" id="srcline66"> 66</a></span><span class="line">    piv(:,3)=piv(:,3).*fricCoeff; <span class="comment">%scale force by friction coefficients</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,67" id="srcline67"> 67</a></span><span class="line">    <span class="comment">%chose which of the two moves - random, but weighted by the required force:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,68" id="srcline68"> 68</a></span><span class="line">    srcF=abs(piv(src,3)); trgF=abs(piv(trg,3));</span></span>
+<span class="srcline"><span class="lineno"><a href="1,69" id="srcline69"> 69</a></span><span class="line">    if(((srcF-trgF)/(srcF+trgF))&lt;0.5*(rand-0.5)); mv=src; <span class="comment">%move source smarticle</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,70" id="srcline70"> 70</a></span><span class="line">    else; mv=trg; <span class="comment">%else move target smarticle</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,71" id="srcline71"> 71</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,72" id="srcline72"> 72</a></span><span class="line">    pAold=0; pCOMold=[0,0];</span></span>
+<span class="srcline"><span class="lineno"><a href="1,73" id="srcline73"> 73</a></span><span class="line">    for i=1:2 <span class="comment">%if one is hard to rotate (too far), rotate the other</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,74" id="srcline74"> 74</a></span><span class="line">    cth=cos(sm(mv,3)-pi/2); sth=sin(sm(mv,3)-pi/2); rotMx=[[cth,-sth];[sth,cth]]; <span class="comment">%rotation matrix</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,75" id="srcline75"> 75</a></span><span class="line">    pivCOM=(rotMx*piv(mv,1:2)'*B)'; <span class="comment">%pivot to smarticle COM in lab frame</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,76" id="srcline76"> 76</a></span><span class="line">    pivot=sm(mv,1:2)+pivCOM; <span class="comment">%pivot point in absolute coord</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,77" id="srcline77"> 77</a></span><span class="line">    pivRad=crd(src,(sLk-beg)*2+(1:2))-pivot; <span class="comment">%pivot to collision point</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,78" id="srcline78"> 78</a></span><span class="line">    [pivRad(1),pivRad(2)]=cart2pol(pivRad(1),pivRad(2));</span></span>
+<span class="srcline"><span class="lineno"><a href="1,79" id="srcline79"> 79</a></span><span class="line">    pivAngle=abs(vStickOut(2)/pivRad(2).*cos(fAng-vStickOut(1))./sin(fAng-pivRad(1))); <span class="comment">%angle to pivot in order to resolve collision</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,80" id="srcline80"> 80</a></span><span class="line">    if(abs(pivAngle)&lt;maxAngle); break; end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,81" id="srcline81"> 81</a></span><span class="line">    if(i==1); mv=3-mv; pAold=pivAngle; pCOMold=pivCOM; <span class="comment">%if pivAngle is too large, try rotating the other one</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,82" id="srcline82"> 82</a></span><span class="line">    elseif(abs(pAold)&lt;abs(pivAngle)); pivAngle=pAold; mv=3-mv; pivCOM=pCOMold; end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,83" id="srcline83"> 83</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,84" id="srcline84"> 84</a></span><span class="line">    if(abs(pivAngle)&lt;maxAngle) <span class="comment">%only pivot if small angle - else ...<span class="comment"> parallel?</span></span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,85" id="srcline85"> 85</a></span><span class="line">         <span class="comment">%xSm=NaN; return; %give error if rotating too far - need better resolution, or something is wrong</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,86" id="srcline86"> 86</a></span><span class="line"><span class="comment">%     pivAngle=max(pivAngle,tRes*3/pivRad(2)); %bound pivot angle from below</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,87" id="srcline87"> 87</a></span><span class="line">    pivAngle=(1-2*(mv==src))*fDir*sign(piv(mv,3))*(pivAngle+trEps*(1+rand)/max(pivRad(2),0.5*B)); <span class="comment">%rotate a little further to make sure, and orient</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,88" id="srcline88"> 88</a></span><span class="line">    sm12v=sm(mv,1:2)-sm(3-mv,1:2); <span class="comment">%vector between smarticles</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,89" id="srcline89"> 89</a></span><span class="line">    <span class="comment">%rotate COM; add repulsive noise to prevent sticking together:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,90" id="srcline90"> 90</a></span><span class="line">    xSm(mv,1:2)=xSm(mv,1:2)+pivAngle*[1,-1].*flip(pivCOM)+trEps*abs(pivAngle)*sm12v/norm(sm12v)*rand; </span></span>
+<span class="srcline"><span class="lineno"><a href="1,91" id="srcline91"> 91</a></span><span class="line">    xSm(mv,3)=xSm(mv,3)+pivAngle; <span class="comment">%rotate angle</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,92" id="srcline92"> 92</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,93" id="srcline93"> 93</a></span><span class="line">    <span class="comment">%if links were near-parallel, ensure they don't pass through on nextstep: </span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,94" id="srcline94"> 94</a></span><span class="line">    <span class="comment">%(instead make them cross at the same point they did this time)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,95" id="srcline95"> 95</a></span><span class="line">    if(abs(so2fAng-pi/2)&lt;tRes*10)</span></span>
+<span class="srcline"><span class="lineno"><a href="1,96" id="srcline96"> 96</a></span><span class="line">        nextCrd=smcle2coord([xSm,nextAl]); <span class="comment">%coordinates for next arm angles</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,97" id="srcline97"> 97</a></span><span class="line">        nextInt=lineSegmentIntersect(nextCrd(src,(sLk-1)*2+(1:4)),nextCrd(trg,(tLk-1)*2+(1:4))); <span class="comment">%intersection of these same links</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,98" id="srcline98"> 98</a></span><span class="line"><span class="comment">%         cla; plot(nextCrd(:,1:2:end)',nextCrd(:,2:2:end)','-o','LineWidth',2); axis([-0.5,0.5,-0.5,0.5]*12);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,99" id="srcline99"> 99</a></span><span class="line"><span class="comment">%         scatter(nextInt.intMatrixX(:),nextInt.intMatrixY(:),1000,'r.'); %mark collision points</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,100" id="srcline100">100</a></span><span class="line">        <span class="comment">%get new force orientation:</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,101" id="srcline101">101</a></span><span class="line">        begS=1-2*beg;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,102" id="srcline102">102</a></span><span class="line">        nSV=begS *(nextCrd(src,(sLk)*2+(1:2))-nextCrd(src,(sLk-1)*2+(1:2))); <span class="comment">%new source vector</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,103" id="srcline103">103</a></span><span class="line">        nTV=nextCrd(trg,(tLk)*2+(1:2))-nextCrd(trg,(tLk-1)*2+(1:2)); <span class="comment">%new target vector</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,104" id="srcline104">104</a></span><span class="line">        sinTh=(nSV(1)*nTV(2)-nSV(2)*nTV(1))/norm(nSV)/norm(nTV);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,105" id="srcline105">105</a></span><span class="line">        flipOrt=-fDir*sign(sinTh);<span class="comment">%do the links flip relative orientation? use sin = cross prod</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,106" id="srcline106">106</a></span><span class="line">        if(flipOrt&gt;0); currInt=nextInt.intNormalizedDistance1To2(1)*lenMx(sLk,1);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,107" id="srcline107">107</a></span><span class="line">        else; currInt=nextInt.intNormalizedDistance2To1(1)*lenMx(tLk,1);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,108" id="srcline108">108</a></span><span class="line">            begS=1-2*(nSV*nTV'&gt;0); nTV=-begS*nSV; sLk=tLk;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,109" id="srcline109">109</a></span><span class="line">        end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,110" id="srcline110">110</a></span><span class="line">        goalInt=lenMx(sLk,1)*(0.5+0.45*begS); <span class="comment">%shift s.t. this is new intersection point</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,111" id="srcline111">111</a></span><span class="line">        smShift=begS*(goalInt-currInt)*abs(sinTh); <span class="comment">%shift = intShift * sin(angle between new links)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,112" id="srcline112">112</a></span><span class="line">        if(smShift&gt;0)</span></span>
+<span class="srcline"><span class="lineno"><a href="1,113" id="srcline113">113</a></span><span class="line"><span class="comment">%             if(smShift&lt;trEps/5); smShift=trEps; end %bound shift from below</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,114" id="srcline114">114</a></span><span class="line">            xSm(mv,1:2)=xSm(mv,1:2)-(1-2*(mv==src))*fDir*smShift*flip(nTV).*[1,-1]/norm(nTV); <span class="comment">%shift orthogonal to new target vector</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,115" id="srcline115">115</a></span><span class="line">        else</span></span>
+<span class="srcline"><span class="lineno"><a href="1,116" id="srcline116">116</a></span><span class="line">            xSm(mv,3)=xSm(mv,3)+(rand-0.5)*0.1;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,117" id="srcline117">117</a></span><span class="line">        end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,118" id="srcline118">118</a></span><span class="line"><span class="comment">%         nextCrd=smcle2coord([xSm,nextAl]); %coordinates for next arm angles</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,119" id="srcline119">119</a></span><span class="line"><span class="comment">%         nextInt=lineSegmentIntersect(nextCrd(src,(sLk-1)*2+(1:4)),nextCrd(trg,(tLk-1)*2+(1:4))); %intersection of these same links</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,120" id="srcline120">120</a></span><span class="line"><span class="comment">%         cla; plot(nextCrd(:,1:2:end)',nextCrd(:,2:2:end)','-o','LineWidth',2); axis([-0.5,0.5,-0.5,0.5]*12);</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,121" id="srcline121">121</a></span><span class="line"><span class="comment">%         scatter(nextInt.intMatrixX(:),nextInt.intMatrixY(:),1000,'r.'); %mark collision points</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,122" id="srcline122">122</a></span><span class="line">    elseif(abs(pivAngle)&gt;=maxAngle) <span class="comment">%if still hasn't moved, wiggle apart</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,123" id="srcline123">123</a></span><span class="line">        sm12v=sm(mv,1:2)-sm(3-mv,1:2); <span class="comment">%vector between smarticles</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,124" id="srcline124">124</a></span><span class="line">        xSm(mv,1:2)=xSm(mv,1:2)+sm12v/norm(sm12v)*rand*trEps; <span class="comment">%add repulsive noise to prevent sticking together</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,125" id="srcline125">125</a></span><span class="line">        xSm(mv,3)=xSm(mv,3)+(rand-0.5)*0.02;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,126" id="srcline126">126</a></span><span class="line">    end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,127" id="srcline127">127</a></span><span class="line"><span class="comment">%     if(abs(so2fAng-pi/2)&lt;tRes*10) %approx cos</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,128" id="srcline128">128</a></span><span class="line"><span class="comment">%         xSm(:,1:2)=xSm(:,1:2)+4*trEps*fDir*[cos(fAng),sin(fAng)].*[1;-1];</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,129" id="srcline129">129</a></span><span class="line"><span class="comment">%         xSm(:,3)=xSm(:,3)+(rand(2,1)-0.5)*tRes*40;</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,130" id="srcline130">130</a></span><span class="line"><span class="comment">%     end</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,131" id="srcline131">131</a></span><span class="line">end</span></span>
+<span class="srcline"><span class="lineno"><a href="1,132" id="srcline132">132</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="1,133" id="srcline133">133</a></span><span class="line"><span class="comment">%response when force applied to the right arm or corner</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,134" id="srcline134">134</a></span><span class="line"><span class="comment">%in: arm angle, force angle, arm length (in units of B)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,135" id="srcline135">135</a></span><span class="line"><span class="comment">%out: [px,py,f] = pivot coordinates (in units of B) and critical force</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,136" id="srcline136">136</a></span><span class="line"><span class="comment">%required to move (in units of friction force; f&gt;0 =&gt; CCW rotation)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,137" id="srcline137">137</a></span><span class="line">function [out]=pivotArm(al,th,A)</span></span>
+<span class="srcline"><span class="lineno"><a href="1,138" id="srcline138">138</a></span><span class="line">    secth=sec(th); tanth=tan(th);</span></span>
+<span class="srcline"><span class="lineno"><a href="1,139" id="srcline139">139</a></span><span class="line">    <span class="comment">%the constant out front quantifies how far off the pivot can be (larger=&gt;further away). "right" value: 0.081</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,140" id="srcline140">140</a></span><span class="line">    py=0.081./(-2*A*secth.*sin(al-th)+tanth); <span class="comment">%approximation for py</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,141" id="srcline141">141</a></span><span class="line">    pylnpy2=-0.6*atan(10*py); <span class="comment">%differentiable approximation for py*log(py^2) for py in (-0.5,0.5)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,142" id="srcline142">142</a></span><span class="line">    px=tanth/2.*pylnpy2;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,143" id="srcline143">143</a></span><span class="line">    f=-secth.*pylnpy2;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,144" id="srcline144">144</a></span><span class="line">    out=[px,py,f];</span></span>
+<span class="srcline"><span class="lineno"><a href="1,145" id="srcline145">145</a></span><span class="line">end</span></span>
+</pre>
+</div>
+<pre class="code">
+<span class="srcline"><span class="lineno"><a href="1,146" id="srcline146">146</a></span><span class="line"></span></span>
+<span class="srcline"><span class="lineno"><a href="1,147" id="srcline147">147</a></span><span class="line"><span class="comment">%response when orthogonal force applied to the body</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,148" id="srcline148">148</a></span><span class="line"><span class="comment">%in: distance from center to push point (in units of B)</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,149" id="srcline149">149</a></span><span class="line"><span class="comment">%out: [px,py,f] = pivot coordinates (in units of B) and critical force required to move</span></span></span>
+<span class="srcline"><span class="lineno"><a href="1,150" id="srcline150">150</a></span><span class="line"><span class="keyword">function</span> [<span class="var type1" id="S99T20U1666">out</span>]=pivotBody(<span class="var type1" id="S100T15U1669">x</span>)</span></span>
+<span class="srcline"><span class="lineno"><a href="1,151" id="srcline151">151</a></span><span class="line">    <span class="mxinfo " id="T15:U3"><span class="var type1" id="S101T15U1672">sq</span>=<span class="mxinfo " id="T15:U5">sqrt(<span class="mxinfo " id="T15:U6"><span class="mxinfo " id="T15:U7">1</span>+<span class="mxinfo " id="T15:U8"><span class="mxinfo " id="T15:U9">4</span>*<span class="mxinfo " id="T15:U10"><span class="var type1" id="S100T15U1680">x</span>.^2</span></span></span>)</span></span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,152" id="srcline152">152</a></span><span class="line">    <span class="mxinfo " id="T20:U12"><span class="var type1" id="S99T20U1684">out</span>=<span class="mxinfo " id="T20:U14">[(<span class="mxinfo " id="T15:U15"><span class="var type1" id="S100T15U1689">x</span>-<span class="mxinfo " id="T15:U17"><span class="mxinfo " id="T15:U18"><span class="mxinfo " id="T15:U19">sign(<span class="var type1" id="S100T15U1694">x</span>)</span>.*<span class="var type1" id="S101T15U1695">sq</span></span>/<span class="mxinfo " id="T15:U22">2</span></span></span>), <span class="mxinfo " id="T15:U23">0</span>, <span class="mxinfo " id="T15:U24"><span class="mxinfo " id="T15:U25"><span class="mxinfo " id="T15:U26">-<span class="mxinfo " id="T15:U27">2</span></span>*<span class="var type1" id="S100T15U1702">x</span></span>+<span class="mxinfo " id="T15:U29"><span class="mxinfo " id="T15:U30">sign(<span class="var type1" id="S100T15U1706">x</span>)</span>.*<span class="var type1" id="S101T15U1707">sq</span></span></span>]</span></span>;</span></span>
+<span class="srcline"><span class="lineno"><a href="1,153" id="srcline153">153</a></span><span class="line"><span class="keyword">end</span></span></span>
+</pre>
+</body>
+</html>
