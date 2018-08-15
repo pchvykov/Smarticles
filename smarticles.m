@@ -3,7 +3,7 @@
 clear all;
 %-------------------------
 % reproduces a bug!
-rng(7);
+rng(3);
 global A B tRes; B=1; A=1; %smarticle size
 Nsm=7; tRes=0.03; %number of smarticles
 t=0:tRes:1000; %time domain
